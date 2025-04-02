@@ -1,0 +1,89 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  name          String?
+  email         String    @unique
+  password      String
+  role          UserRole  @default(DONOR)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  donations     Donation[]
+  pickups       Pickup[]
+  organization  Organization? @relation(fields: [organizationId], references: [id])
+  organizationId String?  @db.ObjectId
+}
+
+model Organization {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  address     String
+  phone       String
+  email       String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  users       User[]
+  pickups     Pickup[]
+}
+
+model Donation {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String
+  quantity    Int
+  unit        String
+  expiryDate  DateTime
+  status      DonationStatus @default(AVAILABLE)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  donor       User      @relation(fields: [donorId], references: [id])
+  donorId     String    @db.ObjectId
+  pickup      Pickup?   @relation(fields: [pickupId], references: [id])
+  pickupId    String?   @db.ObjectId
+}
+
+model Pickup {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  status      PickupStatus @default(PENDING)
+  scheduledAt DateTime
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  donor       User      @relation(fields: [donorId], references: [id])
+  donorId     String    @db.ObjectId
+  organization Organization @relation(fields: [organizationId], references: [id])
+  organizationId String  @db.ObjectId
+  donations   Donation[]
+}
+
+enum UserRole {
+  DONOR
+  ORGANIZATION_ADMIN
+  SYSTEM_ADMIN
+}
+
+enum DonationStatus {
+  AVAILABLE
+  RESERVED
+  PICKED_UP
+  EXPIRED
+}
+
+enum PickupStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
